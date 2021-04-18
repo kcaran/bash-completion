@@ -5,59 +5,13 @@ on:
   push:
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
+  distcheck-macos:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/cache@v2
         with:
-          go-version: ">=1.15"  # for shfmt
-      - run: |
-          python3 -m venv venv  # for venv-run
-          source venv/bin/activate
-          python3 -m pip install -Ur test/requirements-dev.txt
-      - uses: pre-commit/action@v2.0.2
-
-  distcheck:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - dist: alpine
-          - dist: centos7
-          - dist: debian10
-          - dist: debian10
-            bsd: true
-            network: none
-          - dist: fedoradev
-          - dist: ubuntu14
-    steps:
-      - uses: actions/checkout@v2
-      # A "container" workflow config would be cleaner here, but comes with
-      # some restrictions/oddities: changes root's $HOME to /github/home
-      # without changing the actual home dir that can cause some problems,
-      # and does not provide a way to run with --network none.
-      # fedoradev unconfined: https://bugzilla.redhat.com/1900021
-      - run: >-
-          docker run
-          --rm
-          --tty
-          --env CI=true
-          --env DIST=${{matrix.dist}}
-          --env BSD=${{matrix.bsd}}
-          --env PYTESTFLAGS=--verbose
-          --env NETWORK=$NETWORK
-          ${NETWORK:+--network $NETWORK}
-          $(test $DIST = fedoradev && echo --security-opt seccomp=unconfined)
-          --volume $PWD:/usr/src/bash-completion
-          --workdir /usr/src/bash-completion
-          vskytta/bash-completion:${{matrix.dist}}
-          test/docker-script.sh
-        env:
-          DIST: ${{matrix.dist}}
-          NETWORK: ${{matrix.network}}
-
-  # TODO releases config
-  # - for tags [0-9]+.[0-9]+ in scop/bash-completion
-  # - tarball should be in bash-completion-${GITHUB_REF##*/}.tar.xz
+          path: |
+            ~/.cache/pip
+          key: ${{runner.os}}-${{hashFiles('test/requirements.txt')}}
+      - run: env PYTESTFLAGS=--verbose test/macos-script.sh
