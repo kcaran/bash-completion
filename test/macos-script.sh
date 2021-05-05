@@ -1,6 +1,12 @@
 #!/bin/sh -x
 # -eux
 
+find --help || :
+javaws -help || :
+printenv --help || :
+getconf -a || :
+getconf --help || :
+
 brew install \
     automake \
     bash
@@ -13,12 +19,6 @@ env
 autoreconf -i
 ./configure
 make -j
-
-find --help || :
-javaws -help || :
-printenv --help || :
-getconf -a || :
-getconf --help || :
 
 make distcheck \
     PYTESTFLAGS="${PYTESTFLAGS---verbose --numprocesses=auto --dist=loadfile}"
